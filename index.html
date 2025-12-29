@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 RIA & 환헤지 절세 계산기 (상세산식 포함)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #0b7285; --bg: #f8f9fa; --text: #343a40; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; letter-spacing: -0.5px; }
+        .badge { background: #e3fafc; color: #0c8599; padding: 3px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; vertical-align: middle; margin-left: 5px; }
+        
+        .section-title { font-size: 0.95rem; font-weight: bold; color: #495057; margin-top: 25px; margin-bottom: 10px; border-bottom: 2px solid #f1f3f5; padding-bottom: 5px; }
+        
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .full-width { grid-column: span 2; }
+        
+        label { font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; display: block; color: #495057; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.2s; background: #fff; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        
+        button { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+        button:hover { background: #085f6e; }
+        
+        /* 결과 박스 스타일 */
+        .result-box { margin-top: 30px; padding: 25px; background: #e3fafc; border-radius: 12px; text-align: center; display: none; border: 1px solid #c5f6fa; }
+        .result-val { font-size: 2rem; font-weight: 800; color: #0b7285; margin: 10px 0 10px 0; }
+        
+        /* 상세 산식 스타일 (NEW) */
+        .calc-detail { background: #f8f9fa; border: 1px dashed #ced4da; border-radius: 8px; padding: 15px; margin-top: 20px; text-align: left; font-size: 0.9rem; display: none; }
+        .calc-step { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        .calc-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .step-title { font-weight: bold; color: #495057; margin-bottom: 4px; display: block; }
+        .step-formula { color: #868e96; font-size: 0.85rem; font-family: monospace; background: #fff; padding: 4px; border-radius: 4px; display: block; margin-top: 3px; }
+        .step-result { float: right; font-weight: bold; color: #0b7285; }
+
+        .chart-area { margin-top: 25px; position: relative; height: 250px; display: none; }
+        .footer { font-size: 0.75rem; color: #868e96; margin-top: 30px; line-height: 1.4; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🇰🇷 2026 RIA & 환헤지 절세 계산기</h2>
+    
+    <div class="section-title">1. 투자 정보 입력</div>
+    <div class="input-group">
+        <div><label>투자 원금 (만원)</label><input type="number" id="principal" value="5000"></div>
+        <div><label>총 수익금 (만원)</label><input type="number" id="profit" value="2000"></div>
+    </div>
+
+    <div class="section-title">2. RIA (국내복귀) 시점 <span class="badge">핵심</span></div>
+    <div class="full-width">
+        <select id="riaTiming">
+            <option value="0" data-text="미적용">복귀 안 함 (혜택 없음)</option>
+            <option value="1.0" data-text="100% (전액감면)">2026년 1분기 복귀 (100% 감면)</option>
+            <option value="0.8" data-text="80% 감면">2026년 2분기 복귀 (80% 감면)</option>
+            <option value="0.5" data-text="50% 감면">2026년 하반기 복귀 (50% 감면)</option>
+        </select>
+    </div>
+
+    <div class="section-title">3. 환헤지(선물환) 설정 <span class="badge">선택</span></div>
+    <div class="full-width">
+        <label>환헤지(선물환 매도) 금액 (만원)</label>
+        <input type="number" id="hedgeAmount" value="0" placeholder="0">
+        <div style="font-size:0.75rem; color:#888; margin-top:4px;">* 헤지 금액의 5% 추가 공제 (최대 500만원 한도)</div>
+    </div>
+    
+    <button onclick="calculate()">계산 결과 및 산식 보기</button>
+
+    <div class="result-box" id="resultBox">
+        <div style="font-size:0.9rem; font-weight:bold; color:#0b7285;">최종 납부할 세금</div>
+        <div class="result-val" id="finalTax">0원</div>
+        <div style="font-size:0.9rem; color:#495057;">
+            (기존 대비 <span id="totalSaved" style="font-weight:bold; color:#e03131;">0원</span> 절세)
+        </div>
+    </div>
+
+    <div class="calc-detail" id="calcDetail">
+        <div style="text-align:center; font-weight:bold; margin-bottom:15px; color:#333;">🧾 상세 계산 내역</div>
+        
+        <div class="calc-step">
+            <span class="step-result" id="step1_result">0원</span>
+            <span class="step-title">Step 1. 과세표준 산출</span>
+            <span class="step-formula" id="step1_formula">수익 - 기본공제 - 환헤지공제</span>
+        </div>
+
+        <div class="calc-step">
+            <span class="step-result" id="step2_result">0원</span>
+            <span class="step-title">Step 2. 산출 세액 (22%)</span>
+            <span class="step-formula" id="step2_formula">과세표준 × 22%</span>
+        </div>
+
+        <div class="calc-step">
+            <span class="step-result" id="step3_result">-0원</span>
+            <span class="step-title">Step 3. RIA 세액 감면</span>
+            <span class="step-formula" id="step3_formula">산출세액 × 감면율</span>
+        </div>
+
+        <div class="calc-step" style="border-top: 2px solid #ddd; padding-top:10px;">
+            <span class="step-result" id="step4_result" style="font-size:1.1rem; color:#e03131;">0원</span>
+            <span class="step-title">Step 4. 최종 납부 세액</span>
+            <span class="step-formula">산출세액 - 세액감면</span>
+        </div>
+    </div>
+    
+    <div class="chart-area" id="chartArea">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div class="footer">
+        <strong>[출처: 기획재정부 '25.12.24 보도자료]</strong><br>
+        1. RIA 감면: '26년 1분기(100%), 2분기(80%), 하반기(50%) 차등 적용<br>
+        2. 환헤지 공제: 선물환 매도액의 5% 소득공제 (최대 500만원)<br>
+        3. 기본공제: 연 250만원 적용 가정
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    // 숫자 포맷터 (콤마)
+    const fmt = (num) => Math.round(num).toLocaleString();
+
+    function calculate() {
+        // 1. 입력값 가져오기
+        const principal = Number(document.getElementById('principal').value) * 10000;
+        const profit = Number(document.getElementById('profit').value) * 10000;
+        
+        const riaSelect = document.getElementById('riaTiming');
+        const riaRate = Number(riaSelect.value); // 1.0, 0.8, 0.5, 0
+        const riaText = riaSelect.options[riaSelect.selectedIndex].getAttribute('data-text');
+
+        const hedgeAmt = Number(document.getElementById('hedgeAmount').value) * 10000;
+        
+        // 2. 공제 계산
+        const basicDeduction = 2500000;
+        // 환헤지 공제: min(헤지액*5%, 500만원) 
+        const hedgeDeduction = Math.min(hedgeAmt * 0.05, 5000000);
+
+        // --- 계산 로직 ---
+        
+        // [Step 1] 과세표준
+        let taxBase = Math.max(profit - basicDeduction - hedgeDeduction, 0);
+        
+        // [Step 2] 산출세액 (22%)
+        let calculatedTax = taxBase * 0.22;
+
+        // [Step 3] RIA 감면액 (세액감면) [cite: 14, 15]
+        let discountAmount = calculatedTax * riaRate;
+
+        // [Step 4] 최종 세액
+        let finalTax = Math.max(calculatedTax - discountAmount, 0);
+
+        // [비교용] 기존 방식 세금 (기본공제만 적용 시)
+        let oldTaxBase = Math.max(profit - basicDeduction, 0);
+        let oldTax = oldTaxBase * 0.22;
+        let totalSaved = oldTax - finalTax;
+
+        // --- 화면 표시 (결과 박스) ---
+        document.getElementById('finalTax').innerText = fmt(finalTax) + "원";
+        document.getElementById('totalSaved').innerText = fmt(totalSaved) + "원";
+        
+        // --- 화면 표시 (상세 산식) ---
+        // Step 1 텍스트 구성
+        let step1_str = `${fmt(profit)} (수익) - 250만 (기본공제)`;
+        if(hedgeDeduction > 0) step1_str += ` - ${fmt(hedgeDeduction)} (환헤지공제)`;
+        document.getElementById('step1_formula').innerText = step1_str;
+        document.getElementById('step1_result').innerText = fmt(taxBase) + "원";
+
+        // Step 2
+        document.getElementById('step2_formula').innerText = `${fmt(taxBase)} × 22% (지방세포함)`;
+        document.getElementById('step2_result').innerText = fmt(calculatedTax) + "원";
+
+        // Step 3
+        if(riaRate > 0) {
+            document.getElementById('step3_formula').innerText = `${fmt(calculatedTax)} × ${riaRate*100}% (${riaText})`;
+            document.getElementById('step3_result').innerText = "-" + fmt(discountAmount) + "원";
+        } else {
+            document.getElementById('step3_formula').innerText = "RIA 감면 미신청";
+            document.getElementById('step3_result').innerText = "0원";
+        }
+
+        // Step 4
+        document.getElementById('step4_result').innerText = fmt(finalTax) + "원";
+
+        // UI 보이기
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('calcDetail').style.display = 'block';
+        document.getElementById('chartArea').style.display = 'block';
+
+        // --- 차트 업데이트 ---
+        updateChart(oldTax, finalTax, totalSaved);
+    }
+
+    function updateChart(oldTax, newTax, saved) {
+        const ctx = document.getElementById('myChart');
+        if(chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['기존 세금', 'RIA/환헤지 적용'],
+                datasets: [{
+                    label: '납부 세금',
+                    data: [oldTax, newTax],
+                    backgroundColor: ['#ced4da', '#e03131'],
+                    order: 1
+                },
+                {
+                    label: '절세(이득) 금액',
+                    data: [0, saved],
+                    backgroundColor: '#3bc9db',
+                    type: 'bar',
+                    order: 2,
+                    skipNull: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ctx.dataset.label + ": " + fmt(ctx.raw) + "원"
+                        }
+                    },
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
