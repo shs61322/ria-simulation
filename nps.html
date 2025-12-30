@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>금융권 NPS 분석 리포트 - 깐깐한 김대리</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Slate Blue & Professional White. 신뢰감을 주는 네이비(#1e293b)와 청결한 화이트(#ffffff)를 주축으로 하며, NPS 점수 구분을 위해 신호등 색상(Red/Yellow/Green)을 보조색으로 사용합니다. -->
+    
+    <!-- Application Structure Plan: 
+         1. Hero Section: 고해상도 이미지와 함께 깐깐한 김대리의 분석 서문을 배치합니다.
+         2. NPS Simulator (Interactive): 사용자가 직접 0-10점을 눌러 Promoter, Passive, Detractor를 구분하는 로직을 체험합니다.
+         3. Market Data Dashboard: 차트를 통해 핀테크와 전통 은행의 격차 및 NPS의 수익성을 시각화합니다.
+         4. Strategy Deep Dive: 금융권이 NPS를 도입하는 3가지 핵심 이유를 카드 섹션으로 설명합니다.
+         5. Content Strategy: 네이버 홈판에 적합한 후킹 제목 모음을 제공합니다.
+         
+         Reasoning: 사용자가 '시뮬레이션'을 다시 원했으므로, 체험을 통해 개념을 익히고 데이터로 증거를 확인한 뒤 전략적 결론에 도달하는 흐름으로 구성했습니다.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. NPS Calculator: JS를 활용한 동적 버튼과 결과 출력.
+         2. Trend Chart (Line): 산업별 NPS 변화 추이 시뮬레이션.
+         3. ROI Chart (Bar): 추천 고객의 경제적 가치 비교.
+         4. Images: 비즈니스 분석(이미지1)과 디지털 사용 경험(이미지2)을 상징하는 Unsplash 이미지 활용.
+         
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 350px;
+            max-height: 400px;
+            margin: 0 auto;
+        }
+        .nps-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nps-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .nps-btn.active {
+            background-color: #1e293b;
+            color: white;
+            border-color: #1e293b;
+            transform: scale(1.1);
+        }
+        .report-card {
+            transition: transform 0.3s ease;
+        }
+        .report-card:hover {
+            transform: translateY(-5px);
+        }
+        .img-aspect {
+            aspect-ratio: 21 / 9;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <!-- Navigation -->
+    <nav class="bg-slate-900 text-white sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl font-bold tracking-tighter">NPS INSIGHT</span>
+                <span class="text-xs bg-blue-500 px-2 py-0.5 rounded uppercase font-black">Report</span>
+            </div>
+            <div class="text-sm text-slate-400">작성자: <span class="text-white font-bold">깐깐한 김대리</span></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-20">
+
+        <!-- Hero Section -->
+        <section class="space-y-10">
+            <div class="text-center space-y-6">
+                <div class="inline-block bg-slate-200 text-slate-700 px-3 py-1 rounded text-xs font-bold uppercase tracking-widest">Financial Strategy Analysis</div>
+                <h1 class="text-4xl md:text-6xl font-black text-slate-900 leading-tight">
+                    왜 금융권은 당신의 <br>
+                    <span class="text-blue-600">추천 한 마디</span>에 목숨을 거나?
+                </h1>
+                <p class="text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
+                    시중 은행부터 인터넷 뱅크까지, 금융권이 NPS(순고객추천지수)에 집착하는 이유를 
+                    깐깐한 김대리의 시선으로 날카롭게 파헤쳐 봅니다.
+                </p>
+            </div>
+
+            <!-- Image 1: Business Data Context -->
+            <div class="rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
+                <img 
+                    src="https://images.unsplash.com/photo-1551288049-bbda4865cda1?auto=format&fit=crop&w=1600&q=80" 
+                    alt="비즈니스 데이터 분석 이미지" 
+                    class="w-full img-aspect"
+                >
+            </div>
+        </section>
+
+        <!-- Section 1: NPS Simulator (Interactive) -->
+        <section id="simulator" class="space-y-8">
+            <div class="border-l-4 border-blue-600 pl-6">
+                <h2 class="text-3xl font-bold text-slate-900">1. NPS 시뮬레이션: 고객의 마음 읽기</h2>
+                <p class="text-slate-500 mt-2">NPS는 0~10점 사이의 '추천 의향'으로 고객을 세 부류로 나눕니다. 직접 점수를 눌러보세요.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-200">
+                <div class="text-center space-y-10">
+                    <h3 class="text-2xl font-bold text-slate-800">"주변 지인에게 우리 은행을 추천하시겠습니까?"</h3>
+                    
+                    <!-- Score Buttons 0-10 -->
+                    <div class="flex flex-wrap justify-center gap-3 md:gap-4" id="nps-buttons-container">
+                        <!-- JS handles button generation -->
+                    </div>
+
+                    <!-- Dynamic Result Box -->
+                    <div id="nps-display-area" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div class="max-w-2xl mx-auto p-8 rounded-2xl border-2 transition-all duration-300" id="result-card">
+                            <div class="text-sm font-black uppercase tracking-widest mb-2" id="result-label">Category</div>
+                            <div class="text-3xl font-black mb-4" id="result-title">Result Title</div>
+                            <p class="text-slate-600 leading-relaxed" id="result-desc">Result Description</p>
+                        </div>
+                    </div>
+
+                    <!-- Formula Explanation -->
+                    <div class="pt-10 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                        <div class="p-4 bg-green-50 rounded-xl">
+                            <span class="font-bold text-green-700">추천 고객(9-10점)</span><br>충성도 높은 홍보대사
+                        </div>
+                        <div class="p-4 bg-yellow-50 rounded-xl">
+                            <span class="font-bold text-yellow-700">중립 고객(7-8점)</span><br>만족하나 언제든 이탈 가능
+                        </div>
+                        <div class="p-4 bg-red-50 rounded-xl">
+                            <span class="font-bold text-red-700">비추천 고객(0-6점)</span><br>부정적 구전의 발원지
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Data Dashboard -->
+        <section id="data" class="space-y-8">
+            <div class="border-l-4 border-slate-900 pl-6">
+                <h2 class="text-3xl font-bold text-slate-900">2. 시장 분석: 숫자가 말하는 진실</h2>
+                <p class="text-slate-500 mt-2">금융 산업의 판도가 어떻게 변하고 있는지 데이터로 확인하십시오.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Line Chart -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <h4 class="text-lg font-bold mb-6 flex items-center">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                        금융 업권별 NPS 추이 (Simulation)
+                    </h4>
+                    <div class="chart-container">
+                        <canvas id="industryTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart -->
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <h4 class="text-lg font-bold mb-6 flex items-center">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                        NPS 등급별 수익 기여도
+                    </h4>
+                    <div class="chart-container">
+                        <canvas id="roiBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Image 2: Digital Banking Experience -->
+        <section class="rounded-3xl overflow-hidden shadow-xl">
+            <img 
+                src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1600&q=80" 
+                alt="디지털 뱅킹 사용자 이미지" 
+                class="w-full h-80 object-cover"
+            >
+        </section>
+
+        <!-- Section 3: Strategic Insights (Cards) -->
+        <section id="strategy" class="space-y-8">
+            <div class="border-l-4 border-blue-600 pl-6">
+                <h2 class="text-3xl font-bold text-slate-900">3. 금융권 도입의 3대 핵심 이유</h2>
+                <p class="text-slate-500 mt-2">김대리가 정리한 '왜 하필 지금 NPS인가'에 대한 해답입니다.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm report-card">
+                    <div class="text-3xl mb-4">⚖️</div>
+                    <h4 class="text-xl font-bold mb-3">금융소비자보호법 대응</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">단순 실적 위주에서 '고객 중심 경영'으로 지표가 전환되었습니다. NPS는 규제 기관에 제출할 수 있는 가장 객관적인 소비자 권익 보호 데이터입니다.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm report-card">
+                    <div class="text-3xl mb-4">📱</div>
+                    <h4 class="text-xl font-bold mb-3">디지털 UX 고도화</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">비대면 채널이 주력이 된 지금, 앱의 사용성은 곧 은행의 얼굴입니다. NPS 피드백은 복잡한 인증 절차 등 '허들'을 찾아내는 가장 빠른 센서입니다.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm report-card">
+                    <div class="text-3xl mb-4">💰</div>
+                    <h4 class="text-xl font-bold mb-3">마케팅 효율의 극대화</h4>
+                    <p class="text-slate-600 text-sm leading-relaxed">신규 고객 획득 비용(CAC)이 급증했습니다. 지인 추천을 통한 유입은 비용은 0원이면서도 전환율은 일반 광고 대비 5배 이상 높습니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Naver Hooking Titles -->
+        <section class="bg-slate-900 rounded-3xl p-10 md:p-16 text-white overflow-hidden relative">
+            <div class="absolute top-0 right-0 p-8 opacity-10 text-9xl font-black">NPS</div>
+            <div class="relative z-10 space-y-10">
+                <div class="text-center space-y-4">
+                    <h2 class="text-3xl font-bold">네이버 홈판 후킹 제목 제안</h2>
+                    <p class="text-slate-400">깐깐한 김대리가 제안하는 '클릭을 부르는' 제목 리스트</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white/10 p-6 rounded-xl border border-white/10 hover:bg-white/20 transition cursor-pointer group">
+                        <span class="text-xs font-bold text-blue-400 mb-1 block">충격 분석형</span>
+                        <p class="text-lg font-bold group-hover:text-blue-300">"고객님, 오늘 5점 주셨나요? 은행이 당신을 포기하는 법"</p>
+                    </div>
+                    <div class="bg-white/10 p-6 rounded-xl border border-white/10 hover:bg-white/20 transition cursor-pointer group">
+                        <span class="text-xs font-bold text-green-400 mb-1 block">정보 공유형</span>
+                        <p class="text-lg font-bold group-hover:text-green-300">"토스(Toss)와 국민은행의 한 끗 차이? NPS 60점의 비밀"</p>
+                    </div>
+                    <div class="bg-white/10 p-6 rounded-xl border border-white/10 hover:bg-white/20 transition cursor-pointer group">
+                        <span class="text-xs font-bold text-yellow-400 mb-1 block">실무 팁형</span>
+                        <p class="text-lg font-bold group-hover:text-yellow-300">"설문조사 90%가 쓰레기통행? 김대리가 말하는 진짜 NPS"</p>
+                    </div>
+                    <div class="bg-white/10 p-6 rounded-xl border border-white/10 hover:bg-white/20 transition cursor-pointer group">
+                        <span class="text-xs font-bold text-red-400 mb-1 block">트렌드형</span>
+                        <p class="text-lg font-bold group-hover:text-red-300">"연봉 1억 금융맨들이 출근하자마자 확인하는 '이 점수'"</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-slate-400 py-10 border-t border-slate-200">
+            <p class="text-sm font-bold uppercase tracking-widest mb-2">© 2024 Strategic Reporting Lab</p>
+            <p class="text-xs">이 리포트는 '깐깐한 김대리'의 주관적인 분석과 가상 데이터를 포함하고 있습니다.</p>
+        </footer>
+
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. NPS Simulator Generation & Logic
+            const btnContainer = document.getElementById('nps-buttons-container');
+            const displayArea = document.getElementById('nps-display-area');
+            const resultCard = document.getElementById('result-card');
+            const resultLabel = document.getElementById('result-label');
+            const resultTitle = document.getElementById('result-title');
+            const resultDesc = document.getElementById('result-desc');
+
+            for (let i = 0; i <= 10; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = 'nps-btn w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-slate-200 text-lg font-bold text-slate-400 bg-white flex items-center justify-center';
+                btn.onclick = () => handleNpsClick(i, btn);
+                btnContainer.appendChild(btn);
+            }
+
+            function handleNpsClick(score, element) {
+                // Clear active styles
+                document.querySelectorAll('.nps-btn').forEach(b => b.classList.remove('active'));
+                element.classList.add('active');
+
+                // Show display area
+                displayArea.classList.remove('hidden');
+
+                // Logic based on score
+                if (score >= 9) {
+                    updateResult("Promoter", "추천 고객", "귀사의 가장 강력한 우군입니다! 지인에게 자발적으로 홍보하며, 신규 상품 가입 확률이 가장 높습니다. NPS 계산 시 적극 반영되는 핵심 그룹입니다.", "border-green-500", "text-green-600");
+                } else if (score >= 7) {
+                    updateResult("Passive", "중립 고객", "서비스에 만족은 하지만 열광하지는 않습니다. 더 좋은 금리나 혜택을 제공하는 경쟁사가 나타나면 언제든 떠날 준비가 되어 있습니다. NPS 점수 산정에는 포함되지 않습니다.", "border-yellow-500", "text-yellow-600");
+                } else {
+                    updateResult("Detractor", "비추천 고객", "경험에 실망한 고객입니다. 부정적인 입소문을 낼 가능성이 크며, 서비스의 약점을 가장 잘 알고 있습니다. NPS 점수를 깎아먹는 '위험 신호'입니다.", "border-red-500", "text-red-600");
+                }
+            }
+
+            function updateResult(label, title, desc, borderClass, textClass) {
+                resultCard.className = `max-w-2xl mx-auto p-8 rounded-2xl border-4 transition-all duration-300 bg-white ${borderClass}`;
+                resultLabel.textContent = label;
+                resultLabel.className = `text-sm font-black uppercase tracking-widest mb-2 ${textClass}`;
+                resultTitle.textContent = title;
+                resultTitle.className = `text-3xl font-black mb-4 ${textClass}`;
+                resultDesc.textContent = desc;
+            }
+
+            // 2. Charts Implementation
+            const commonConfig = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { family: 'Noto Sans KR', size: 12 } } }
+                }
+            };
+
+            // Industry Trend (Line)
+            const ctxTrend = document.getElementById('industryTrendChart').getContext('2d');
+            new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: ['2020', '2021', '2022', '2023', '2024'],
+                    datasets: [
+                        {
+                            label: '핀테크/인뱅',
+                            data: [55, 62, 68, 65, 72],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 4
+                        },
+                        {
+                            label: '5대 시중은행',
+                            data: [12, 18, 25, 35, 42],
+                            borderColor: '#94a3b8',
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    ...commonConfig,
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+
+            // ROI Bar Chart
+            const ctxRoi = document.getElementById('roiBarChart').getContext('2d');
+            new Chart(ctxRoi, {
+                type: 'bar',
+                data: {
+                    labels: ['신규 가입 유도', '유지 기간(LTV)', '교차 판매율'],
+                    datasets: [
+                        {
+                            label: '비추천(0-6)',
+                            data: [15, 30, 12],
+                            backgroundColor: '#ef4444',
+                            borderRadius: 6
+                        },
+                        {
+                            label: '추천(9-10)',
+                            data: [88, 95, 75],
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    ...commonConfig,
+                    scales: { y: { display: false } }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
